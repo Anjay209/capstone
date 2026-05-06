@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storm Watch // Phase Analysis</title>
+    <style>
+        :root {
+            --bg-deep: #060b13;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(100, 200, 255, 0.2);
+            --accent-blue: #64c8ff;
+            --accent-green: #00ff64;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 50%, rgba(10, 20, 50, 1) 0%, rgba(5, 10, 20, 1) 100%);
+        }
+
+        .site-nav {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            position: sticky;
+            top: 0;
+            z-index: 300;
+            min-height: 64px;
+            padding: 0 clamp(16px, 4vw, 40px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: rgba(10, 15, 35, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(100, 200, 255, 0.22);
+        }
+
+        .site-nav-links {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: clamp(0.35rem, 1.5vw, 1.25rem);
+            flex-wrap: wrap;
+        }
+
+        .site-nav a.nav-brand {
+            font-weight: 800;
+            color: #64c8ff;
+            text-decoration: none;
+            letter-spacing: 0.08em;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .site-nav a.nav-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.4rem 0.55rem;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+        .site-nav a.nav-link:hover {
+            color: #64c8ff;
+            background: rgba(100, 200, 255, 0.1);
+        }
+
+        .site-nav a.nav-link.active {
+            color: #64c8ff;
+            background: rgba(100, 200, 255, 0.14);
+            border: 1px solid rgba(100, 200, 255, 0.25);
+        }
+
+        .site-nav-status {
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.55);
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .site-nav { padding-top: 10px; padding-bottom: 10px; }
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
+        .analysis-page-stack {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-footer {
+            width: 100%;
+            flex-shrink: 0;
+            position: relative;
+            border-top: 1px solid rgba(100, 200, 255, 0.25);
+            background: rgba(8, 14, 32, 0.5);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+        }
+
+        .site-footer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(100, 200, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100, 200, 255, 0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .site-footer::after {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -15%;
+            width: 55%;
+            height: 120%;
+            background: radial-gradient(ellipse, rgba(100, 200, 255, 0.08) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .site-footer-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 1.35rem clamp(1.25rem, 4vw, 2.75rem);
+        }
+
+        .site-footer-text {
+            margin: 0;
+            text-align: center;
+            font-size: 0.78rem;
+            line-height: 1.65;
+            color: rgba(255, 255, 255, 0.58);
+        }
+
+        .site-footer-text a {
+            color: #64c8ff;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .site-footer-text a:hover {
+            color: #9bdcff;
+            text-decoration: underline;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .subject-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            min-height: 70vh;
+        }
+
+        .subject-image {
+            max-width: 85%;
+            border-radius: 12px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            margin-bottom: 25px;
+        }
+
+        .storm-identifier {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            background: rgba(100, 200, 255, 0.1);
+            padding: 10px 30px;
+            border-radius: 50px;
+        }
+
+        .task-sidebar {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 35px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-box {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .answer-option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 18px;
+            border-radius: 10px;
+            color: var(--text-main);
+            text-align: left;
+            margin-bottom: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .answer-option:hover { background: rgba(100, 200, 255, 0.1); }
+        .answer-option.selected { 
+            background: var(--accent-blue); 
+            color: #000; 
+            font-weight: 800; 
+        }
+
+        .btn-done {
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            padding: 20px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: auto;
+        }
+
+        .stats-section {
+            margin: 0 20px 40px 20px;
+            padding: 40px;
+            background: rgba(100, 200, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 76%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .stat-card { padding: 20px; background: rgba(255,255,255,0.03); border-radius: 12px; }
+        .stat-value { font-size: 1.5rem; font-weight: 800; display: block; }
+        .stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; }
+        /* IMAGE CONTROLS STYLING */
+.image-controls {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.control-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--glass-border);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    font-size: 1.2rem;
+    transition: 0.2s;
+}
+
+.control-btn:hover { 
+    background: var(--accent-blue); 
+    color: black; 
+    box-shadow: 0 0 15px var(--accent-blue);
+}
+
+/* Ensure the image can be scaled */
+.subject-image {
+    transition: transform 0.2s ease-out;
+}
+    </style>
+</head>
+<body>
+
+    <nav class="site-nav" aria-label="Main navigation">
+        <a href="index.html" class="nav-brand">PROJECT RI</a>
+        <div class="site-nav-links">
+            <a href="index.html" class="nav-link" data-nav="home">Home</a>
+            <a href="dashboard.html" class="nav-link" data-nav="dashboard">Dashboard</a>
+            <a href="analysis.html?phase=1" class="nav-link" data-phase="1">Phase 01</a>
+            <a href="analysis.html?phase=2" class="nav-link" data-phase="2">Phase 02</a>
+            <a href="analysis.html?phase=3" class="nav-link" data-phase="3">Phase 03</a>
+            <a href="analysis.html?phase=4" class="nav-link" data-phase="4">Phase 04</a>
+            <span class="site-nav-status">SYSTEM STATUS: ACTIVE</span>
+        </div>
+    </nav>
+
+    <div class="analysis-page-stack">
+    <main class="main-layout">
+        <div class="subject-container">
+            <img id="subject-img" src="" class="subject-image">
+            <div id="storm-name" class="storm-identifier">STORM_ID_NULL</div>
+            <div class="image-controls">
+                <button class="control-btn" onclick="zoomImage(0.1)">+</button>
+                <button class="control-btn" onclick="zoomImage(-0.1)">-</button>
+                <button class="control-btn" onclick="renderTask()">↺</button>
+            </div>
+        </div>
+
+        <div class="task-sidebar">
+            <div id="phase-label" style="color: var(--accent-blue); font-size: 0.7rem; font-weight: 800; margin-bottom: 10px;">PHASE 01</div>
+            <h2 id="phase-title" style="margin-bottom: 25px;">Phase Title</h2>
+            
+            <div class="question-box">
+                <p id="question-text">Question Loading...</p>
+            </div>
+
+            <div id="options-container"></div>
+
+            <button class="btn-done" onclick="completeTask()">Validate & Advance</button>
+        </div>
+    </main>
+
+    <section class="stats-section">
+        <div>
+            <h4 style="margin: 0;">GLOBAL DETECTION ACCURACY</h4>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <span style="font-size: 0.8rem; font-weight: 700;">76% OF CASCADE VALIDATED</span>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card"><span class="stat-value">253</span><span class="stat-label">Storms Logged</span></div>
+            <div class="stat-card"><span class="stat-value">42h</span><span class="stat-label">Lead Time</span></div>
+        </div>
+    </section>
+    </div>
+
+    <footer class="site-footer" role="contentinfo">
+        <div class="site-footer-inner">
+            <p class="site-footer-text">Atlantic best-track verification follows <a href="https://www.nhc.noaa.gov/data/hurdat/" target="_blank" rel="noopener noreferrer">NOAA HURDAT2</a>; rapid-intensity context is framed with <a href="https://www.aoml.noaa.gov/hrd/project/ships/" target="_blank" rel="noopener noreferrer">SHIPS-RII</a> (Statistical Hurricane Intensity Prediction Scheme — Rapid Intensification Index). Global storm census and RI statistics use <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">NOAA IBTrACS</a>.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentScale = 1;
+
+function zoomImage(amount) {
+    currentScale += amount;
+    // Prevent zooming out too far
+    if (currentScale < 0.5) currentScale = 0.5;
+    // Prevent zooming in too far
+    if (currentScale > 3) currentScale = 3;
+    
+    document.getElementById('subject-img').style.transform = `scale(${currentScale})`;
+}
+       const analysisDatabase = {
+    "1": {
+        title: "Thermal Inflation",
+        imageFolder: "level3",
+        imagePool: [
+            "era5_201708_atlantic_tei_t001.png",
+            "era5_201708_atlantic_tei_t002.png",
+            "era5_201708_atlantic_tei_t003.png",
+            "era5_201708_atlantic_tei_t004.png",
+            "era5_201708_atlantic_tei_t005.png",
+            "era5_201709_atlantic_tei_t012.png",
+            "era5_201709_atlantic_tei_t020.png"
+        ],
+        storms: [
+            { name: "SATELLITE BATCH: L3-AUG" },
+            { name: "SATELLITE BATCH: L3-SEP" }
+        ],
+        // Your simplified "Visual Language" question
+        q: "Is the ocean 'fever' level high? (Look for the blue line spiking past +4.5)",
+        options: ["Extreme Heat (Danger)", "Normal Warmth", "Data Missing"]
+    },
+    "2": {
+        title: "Convective Bursts",
+        imageFolder: "step2",
+        imagePool: ["1.png", "2.png", "no1.png", "no2.png", "no3.png"],
+        storms: [{ name: "HURRICANE JOSE (2017)", img: "step2-lightning.png", q: "Do you see a 'lightning heartbeat'? (Tall spike in yellow box)" }],
+        options: ["Strong Heartbeat", "Quiet Storm", "Weak Signals"]
+    },
+    "3": {
+        title: "Wave Amplification",
+        imageFolder: "step3",
+        imagePool: ["no1.png", "no2.png", "no3.png"],
+        storms: [{ name: "HURRICANE NATE (2017)", img: "step3-waves.png", q: "Are energy ripples massive? (Red shape higher than Blue)" }],
+        options: ["Huge Ripples", "Small Ripples", "Signal Noise"]
+    },
+    "4": {
+        title: "Operational Outcome",
+        imageFolder: "step4",
+        imagePool: ["yes1.png", "yes2.png", "yes3.jpeg"],
+        storms: [{ name: "GLOBAL VALIDATION", img: "step4-outcomes.png", q: "Did we beat the old warning time? (Green bars past red line)" }],
+        options: ["Yes! (Extra Day)", "No Difference", "System Error"]
+    }
+};
+
+let currentStormIndex = 0;
+
+function renderTask() {
+    const params = new URLSearchParams(window.location.search);
+    const phaseId = params.get('phase') || "1";
+    const phaseData = analysisDatabase[phaseId];
+    
+    const currentStorm = phaseData.storms[0];
+
+    let displayImage;
+    currentScale = 1;
+    document.getElementById('subject-img').style.transform = `scale(1)`;
+    if (phaseData.imagePool && phaseData.imageFolder) {
+        const randomIndex = Math.floor(Math.random() * phaseData.imagePool.length);
+        displayImage = `${phaseData.imageFolder}/${phaseData.imagePool[randomIndex]}`;
+    } else {
+        displayImage = currentStorm.img;
+    }
+
+    // UI Updates
+    document.getElementById('phase-label').innerText = `PHASE 0${phaseId}`;
+    document.getElementById('phase-title').innerText = phaseData.title;
+    document.getElementById('storm-name').innerText = currentStorm.name;
+    document.getElementById('subject-img').src = displayImage;
+    document.getElementById('question-text').innerText = phaseData.q || currentStorm.q;
+
+    // Render Answer Options
+    const optContainer = document.getElementById('options-container');
+    optContainer.innerHTML = '';
+    phaseData.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-option';
+        btn.innerText = opt;
+        btn.onclick = function() {
+            document.querySelectorAll('.answer-option').forEach(b => b.classList.remove('selected'));
+            this.classList.add('selected');
+        };
+        optContainer.appendChild(btn);
+    });
+}
+
+function completeTask() {
+    const params = new URLSearchParams(window.location.search);
+    const phaseId = params.get('phase') || "1";
+    const phaseData = analysisDatabase[phaseId];
+
+    // Phases with imagePool + imageFolder: endless random images — no batch redirect
+    if (phaseData.imagePool && phaseData.imageFolder) {
+        document.querySelectorAll('.answer-option').forEach(b => b.classList.remove('selected'));
+        renderTask();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    const storms = phaseData.storms;
+    if (currentStormIndex < storms.length - 1) {
+        currentStormIndex++;
+        renderTask();
+        window.scrollTo(0, 0);
+    } else {
+        alert(`Batch for Phase 0${phaseId} complete! Returning to Dashboard.`);
+        window.location.href = 'dashboard.html';
+    }
+}
+
+function highlightNavPhase() {
+    const phase = new URLSearchParams(window.location.search).get('phase') || '1';
+    document.querySelectorAll('.site-nav a[data-phase]').forEach(function (a) {
+        a.classList.toggle('active', a.getAttribute('data-phase') === phase);
+    });
+}
+
+window.onload = function () {
+    highlightNavPhase();
+    renderTask();
+};
+    </script>
+</body>
+</html>
